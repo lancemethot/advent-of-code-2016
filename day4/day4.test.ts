@@ -43,6 +43,15 @@ function isValidRoom(room: Room): boolean {
     return calculated === room.checksum;
 }
 
+function decryptName(name: string, sectorId: number): string {
+    let decrypted = '';
+    name.split('').forEach(chr => {
+        if(chr === '-') decrypted += ' ';
+        else decrypted += String.fromCharCode(((chr.charCodeAt(0) - 97 + sectorId) % 26) + 97);
+    });
+    return decrypted;
+}
+
 function partOne(input: string[]): number {
     return parseInput(input).filter(isValidRoom).reduce((acc, room) => {
         return acc + room.sectorId;
@@ -50,6 +59,10 @@ function partOne(input: string[]): number {
 }
 
 function partTwo(input: string[]): number {
+    parseInput(input).filter(isValidRoom).forEach(room => {
+        const decrypted = decryptName(room.name, room.sectorId);
+        debug(`Sector ${room.sectorId}: ${decrypted}`, day, true);
+    });
     return 0;
 }
 
@@ -62,4 +75,8 @@ test(day, () => {
     expect(calculateChecksum("totally-real-room")).not.toBe("decoy");
 
     expect(partOne(getDayInput(day))).toBe(409147);
+
+    expect(decryptName('qzmt-zixmtkozy-ivhz', 343)).toBe('very encrypted name');
+
+    expect(partTwo(getDayInput(day))).toBe(991); // Check debug log for 'north pole storage'
 });
