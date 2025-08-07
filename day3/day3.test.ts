@@ -13,6 +13,19 @@ function parseInput(input: string[]): PotentialTriangle[] {
     });
 }
 
+// Transpose columns into triangles
+function transform(potential: PotentialTriangle[]): PotentialTriangle[] {
+    let candidates: PotentialTriangle[] = [];
+    for(let i = 0; i < potential.length; i++) {
+        if((i + 1) % 3 === 0) {
+            candidates.push([potential[i-2][0], potential[i-1][0], potential[i][0]] as PotentialTriangle);
+            candidates.push([potential[i-2][1], potential[i-1][1], potential[i][1]] as PotentialTriangle);
+            candidates.push([potential[i-2][2], potential[i-1][2], potential[i][2]] as PotentialTriangle);
+        }
+    }
+    return candidates;
+}
+
 function isValidTriangle(candidate: PotentialTriangle): boolean {
     return ((candidate[0] + candidate[1]) > candidate[2]) &&
            ((candidate[0] + candidate[2]) > candidate[1]) &&
@@ -25,7 +38,9 @@ function partOne(input: string[]): number {
 }
 
 function partTwo(input: string[]): number {
-    return 0;
+    let potential: PotentialTriangle[] = parseInput(input);
+    potential = transform(potential);
+    return potential.filter(isValidTriangle).length;
 }
 
 test(day, () => {
@@ -33,5 +48,5 @@ test(day, () => {
 
     expect(partOne(getDayInput(day))).toBe(993);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(getDayInput(day))).toBe(1849);
 });
