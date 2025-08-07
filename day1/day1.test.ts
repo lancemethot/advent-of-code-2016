@@ -56,7 +56,7 @@ function turn(direction: string, leftOrRight: string): string {
 function move(steps: string[] = [], stopEarly: boolean = false): Coord {
     let direction: string = 'n';
     let position: Coord = { x: 0, y: 0 };
-    let lines: Line[] = [];
+    let visited: Set<string> = new Set();
     for(let i = 0; i < steps.length; i++) {
         let step = steps[i];
         let duration = Number.parseInt(step.substring(1));
@@ -71,18 +71,22 @@ function move(steps: string[] = [], stopEarly: boolean = false): Coord {
         }
 
         if(stopEarly) {
-            let intersect: Coord | null = lines.reduce((acc, line) => {
-                return acc !== null ? acc : intersection({
-                    a: position,
-                    b: next
-                }, line);
-            }, null as Coord | null);
+            for(let j = 0; j < duration; j++) {
+                let stepCoord: Coord = { x: position.x, y: position.y };
+                switch(direction) {
+                    case 'n': stepCoord.x += 1; break;
+                    case 's': stepCoord.x -= 1; break;
+                    case 'e': stepCoord.y += 1; break;
+                    case 'w': stepCoord.y -= 1; break;
+                }
 
-            if(intersect !== null) {
-                return intersect;
+                let key = `${stepCoord.x},${stepCoord.y}`;
+                if(visited.has(key)) {
+                    return stepCoord; // Found a repeat
+                }
+                visited.add(key);
+                position = stepCoord;
             }
-
-            lines.push({ a: position, b: next });
         }
 
         position = next;
@@ -110,6 +114,6 @@ test(day, () => {
     expect(partOne(["R5, L5, R5, R3"])).toBe(12);
     expect(partOne(getDayInput(day))).toBe(291);
 
-    expect(partTwo(["R8, R4, R4, R8"])).toBe(2);
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(["R8, R4, R4, R8"])).toBe(4);
+    expect(partTwo(getDayInput(day))).toBe(159);
 });
