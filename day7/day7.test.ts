@@ -1,4 +1,4 @@
-import { debug, getDayInput, getExampleInput } from "advent-of-code-utils";
+import { debug, getDayInput } from "advent-of-code-utils";
 
 const day = "day7";
 
@@ -11,6 +11,16 @@ function isABBA(sequence: string): boolean {
         (sequence[0] == sequence[3]) &&
         (sequence[1] == sequence[2]) &&
         (sequence[0] !== sequence[1]);
+}
+
+function isABA(sequence: string): boolean {
+    return sequence.length === 3 &&
+        (sequence[0] == sequence[2]) &&
+        (sequence[0] !== sequence[1]);
+}
+
+function toBAB(sequence: string): string {
+    return `${sequence[1]}${sequence[0]}${sequence[1]}`;
 }
 
 function supportsTLS(ip: string): boolean {
@@ -40,12 +50,43 @@ function supportsTLS(ip: string): boolean {
     return isSupported;
 }
 
+function supportsSSL(ip: string): boolean {
+    let inHyperText = false;
+    let chunk = '';
+    let supernetSequences: string[] = [];
+    let hypernetSequences: string[] = [];
+
+    for(let i = 0; i < ip.length; i++) {
+        if(ip[i] === '[') {
+            chunk = '';
+            inHyperText = true;
+        } else if(ip[i] === ']') {
+            chunk = '';
+            inHyperText = false;
+        } else {
+            chunk += ip[i];
+            if(chunk.length > 2) {
+                let check = isABA(chunk.slice(chunk.length - 3));
+                if(check) {
+                    if(inHyperText) hypernetSequences.push(chunk.slice(chunk.length - 3));
+                    else supernetSequences.push(chunk.slice(chunk.length - 3));
+                }
+            }
+        }
+    }
+
+    return supernetSequences.reduce((acc, sequence) => {
+        let bab = toBAB(sequence);
+        return acc || hypernetSequences.filter(seq => seq === bab).length > 0; 
+    }, false);
+}
+
 function partOne(input: string[]): number {
     return parseInput(input).filter(supportsTLS).length;
 }
 
 function partTwo(input: string[]): number {
-    return 0;
+    return parseInput(input).filter(supportsSSL).length;
 }
 
 test(day, () => {
@@ -58,6 +99,11 @@ test(day, () => {
 
     expect(partOne(getDayInput(day))).toBe(118);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(supportsSSL('aba[bab]xyz')).toBe(true);
+    expect(supportsSSL('xyx[xyx]xyx')).toBe(false);
+    expect(supportsSSL('aaa[kek]eke')).toBe(true);
+    expect(supportsSSL('zazbz[bzb]cdb')).toBe(true);
+    
+    expect(partTwo(getDayInput(day))).toBe(260);
 
 });
