@@ -59,11 +59,14 @@ function partOne(input: string[]): number {
 }
 
 function partTwo(input: string[]): number {
-    parseInput(input).filter(isValidRoom).forEach(room => {
-        const decrypted = decryptName(room.name, room.sectorId);
-        debug(`Sector ${room.sectorId}: ${decrypted}`, day, true);
-    });
-    return 0;
+    return parseInput(input).filter(isValidRoom).reduce((acc, room) => {
+        let decrypted = decryptName(room.name, room.sectorId);
+        if(decrypted === 'northpole object storage') {
+            return room.sectorId;
+        } else {
+            return acc;
+        }
+    }, 0);
 }
 
 test(day, () => {
@@ -78,5 +81,5 @@ test(day, () => {
 
     expect(decryptName('qzmt-zixmtkozy-ivhz', 343)).toBe('very encrypted name');
 
-    expect(partTwo(getDayInput(day))).toBe(991); // Check debug log for 'north pole storage'
+    expect(partTwo(getDayInput(day))).toBe(991);
 });
