@@ -55,18 +55,8 @@ function parseInput(input: string[]): Map<number, Bot> {
     }, new Map<number, Bot>());
 }
 
-function assign(bots: Map<number, number[]>, id: number, chip: number): number {
-    if(bots.has(id)) {
-        bots.get(id)!.push(chip);
-    } else {
-        bots.set(id, [ chip ]);
-    }
-    return bots.get(id)!.length;
-}
+function execute(bots: Map<number, Bot>, low: number, high: number, checkBins: boolean = false): number {
 
-function partOne(input: string[], low: number, high: number): number {
-
-    const bots = parseInput(input);
     const bins: Map<number, number[]> = new Map<number, number[]>();
 
     let checklist: number[] = Array.from(bots.keys());
@@ -101,6 +91,14 @@ function partOne(input: string[], low: number, high: number): number {
                 checklist.push(bot.high.id);
             }
 
+            if(checkBins) {
+                let zero = bins.get(0);
+                let one = bins.get(1);
+                let two = bins.get(2);
+                if(zero && zero.length > 0 && one && one.length > 0 && two && two.length > 0) {
+                    return zero[0] * one[0] * two[0];
+                }
+            }
             bots.get(bot.id)!.chips = [];
         }
     }
@@ -109,8 +107,12 @@ function partOne(input: string[], low: number, high: number): number {
 
 }
 
+function partOne(input: string[], low: number, high: number): number {
+    return execute(parseInput(input), low, high, false);
+}
+
 function partTwo(input: string[]): number {
-    return 0;
+    return execute(parseInput(input), -1, -1, true);
 }
 
 test(day, () => {
@@ -119,5 +121,5 @@ test(day, () => {
     expect(partOne(getExampleInput(day), 2, 5)).toBe(2);
     expect(partOne(getDayInput(day), 17, 61)).toBe(101);  
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(getDayInput(day))).toBe(37789);
 });
