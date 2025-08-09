@@ -1,4 +1,5 @@
 import { debug, getDayInput, getExampleInput, HeapItem, MinHeap} from 'advent-of-code-utils';
+import { create } from 'domain';
 
 const day = 'day13';
 
@@ -15,7 +16,7 @@ type Coord = {
 
 type Route = HeapItem & {
     position: Coord;
-    visited: Coord[];
+    visited: Set<string>;
 }
 
 function parseInput(input: string[]): { favorite: number, exit: Coord } {
@@ -61,7 +62,11 @@ function createGrid(seed: number): Coord[][] {
     return grid;
 }
 
-function moves(grid: Coord[][], position: Coord, visited: Coord[]): Coord[] {
+function key(coord: Coord): string {
+    return `${coord.x},${coord.y}`;
+}
+
+function moves(grid: Coord[][], position: Coord, visited: Set<string>): Coord[] {
     return [
         { x: position.x - 1, y: position.y },
         { x: position.x + 1, y: position.y },
@@ -70,29 +75,63 @@ function moves(grid: Coord[][], position: Coord, visited: Coord[]): Coord[] {
     ].filter(move => move.x >= 0 && move.x < grid.length &&
         move.y >= 0 && move.y < grid[0].length
     ).filter(move => grid[move.x][move.y].tile === Tile.OPEN)
-     .filter(move => visited.every(step => !(move.x === step.x && move.y === step.y)));
+     .filter(move => !visited.has(key(move)));
 }
 
 function dijkstra(grid: Coord[][], start: Coord, exit: Coord): number {
 
     let heap: MinHeap<Route> = new MinHeap<Route>();
-    heap.insert({ size: 0, position: start, visited: [ start ] });
+    heap.insert({ size: 0, position: start, visited: new Set<string>([ key(start) ]) });
 
     while(heap.size() > 0) {
         let route: Route = heap.extractMin();
 
         if(route.position.x === exit.x && route.position.y === exit.y) {
-            return route.visited.length - 1;
+            return route.visited.size - 1;
         }
 
         moves(grid, route.position, route.visited).forEach(move => {
-            let newRoute: Route = { size: route.size + 1, position: move, visited: [ ...route.visited, move ]};
+            let newRoute: Route = { size: route.size + 1, position: move, visited: new Set<string>([ ...route.visited, key(move) ]) };
             heap.insert(newRoute);
         });
 
     }
 
     return 0;
+
+}
+
+function dijkstraVisited(grid: Coord[][], start: Coord, limit: number): number {
+
+    let visited: Map<string, number> = new Map<string, number>();
+    visited.set(key(start), 0);
+
+    let heap: MinHeap<Route> = new MinHeap<Route>();
+    heap.insert({ size: 0, position: start, visited: new Set<string>([ key(start) ]) });
+
+    while(heap.size() > 0) {
+        let route: Route = heap.extractMin();
+
+        if(route.size === limit) {
+            continue;
+        }
+
+        moves(grid, route.position, route.visited).forEach(move => {
+            let steps = route.size + 1;
+            let k = key(move);
+            let count = visited.get(k);
+            if(count === undefined || steps < count) {
+                visited.set(k, steps);
+                if(steps <= limit) {
+                    let newRoute: Route = { size: steps, position: move, visited: new Set<string>([ ...route.visited, key(move) ]) };
+                    heap.insert(newRoute);
+                }
+            }
+        });
+
+    }
+
+    return visited.size;
 
 }
 
@@ -103,7 +142,9 @@ function partOne(input: string[]): number {
 }
 
 function partTwo(input: string[]): number {
-    return 0;
+    const { favorite, exit } = parseInput(input);
+    const grid = createGrid(favorite);
+    return dijkstraVisited(grid, { x: 1, y: 1 }, 50);
 }
 
 test(day, () => {
@@ -112,5 +153,5 @@ test(day, () => {
     expect(partOne(getExampleInput(day))).toBe(11);
     expect(partOne(getDayInput(day))).toBe(90);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(getDayInput(day))).toBe(135);
 });
