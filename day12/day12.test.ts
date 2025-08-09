@@ -6,11 +6,7 @@ function parseInput(input: string[]): string[] {
     return input.filter(line => line.trim().length > 0);
 }
 
-function execute(instructions: string[]): number[] {
-
-    const registers: Map<string, number> = new Map();
-    ['a','b','c','d'].forEach(reg => registers.set(reg, 0));
-
+function execute(instructions: string[], registers: Map<string, number>): number[] {
     for(let i = 0; i < instructions.length; i++) {
         let matches = instructions[i].match(/(inc|dec) ([abcd])/);
         if(matches !== null) {
@@ -50,11 +46,16 @@ function execute(instructions: string[]): number[] {
 }
 
 function partOne(input: string[]): number {
-    return execute(parseInput(input))[0];
+    const registers: Map<string, number> = new Map();
+    ['a','b','c','d'].forEach(reg => registers.set(reg, 0));
+    return execute(parseInput(input), registers)[0];
 }
 
 function partTwo(input: string[]): number {
-    return 0;
+    const registers: Map<string, number> = new Map();
+    ['a','b','c','d'].forEach(reg => registers.set(reg, 0));
+    registers.set('c', 1);
+    return execute(parseInput(input), registers)[0];
 }
 
 test(day, () => {
@@ -63,5 +64,5 @@ test(day, () => {
     expect(partOne(getExampleInput(day))).toBe(42);
     expect(partOne(getDayInput(day))).toBe(318003);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(getDayInput(day))).toBe(9227657);
 });
