@@ -2,9 +2,6 @@ import { debug, getDayInput, getExampleInput, HeapItem, MinHeap } from 'advent-o
 
 const day = "day11";
 
-const BOTTOM = 0;
-const TOP = 3;
-
 enum Cargo {
     MICROCHIP = "microchip",
     GENERATOR = "generator"
@@ -17,6 +14,7 @@ type Item = {
 
 type Round = HeapItem & {
     floor: number;
+    bottom: number;
     items: Item[][];
 }
 
@@ -42,32 +40,53 @@ function parseInput(input: string[]): Item[][] {
 function isValidFloor(floor: Item[]): boolean {
     let chips = floor.filter(item => item.type === Cargo.MICROCHIP);
     let generators = floor.filter(item => item.type === Cargo.GENERATOR);
-    return chips.length === 0 || chips.every(chip => generators.some(gen => gen.element === chip.element));
+    return generators.length === 0 || chips.every(chip => generators.some(gen => gen.element === chip.element));
 }
 
 function combinations(items: Item[]): Item[][] {
     const combos: Item[][] = [];
     for(let i = 0; i < items.length; i++) {
-        combos.push([ items[i] ]);
-    }
-    for(let i = 0; i < items.length; i++) {
         for(let j = i + 1; j < items.length; j++) {
             combos.push([ items[i], items[j] ]);
         }
+    }
+    for(let i = 0; i < items.length; i++) {
+        combos.push([ items[i] ]);
     }
     return combos;
 }
 
 function hash(round: Round): string {
-    const floorHashes = round.items.map(floor => floor.map(item => `${item.element}-${item.type}`).sort().join(','));
-    return `${round.floor}-${floorHashes.join('|')}`;
+    // Canonical, element-agnostic state hash: elevator floor + sorted pairs of (chipFloor-generatorFloor)
+    const positions: Record<string, { chip: number; gen: number }> = {};
+    round.items.forEach((floorItems, floorIdx) => {
+        floorItems.forEach(item => {
+            const pos = positions[item.element] ?? { chip: -1, gen: -1 };
+            if (item.type === Cargo.MICROCHIP) pos.chip = floorIdx;
+            else pos.gen = floorIdx;
+            positions[item.element] = pos;
+        });
+    });
+    const pairs = Object.values(positions)
+        .map(p => `${p.chip}-${p.gen}`)
+        .sort()
+        .join('|');
+    return `${round.floor}:${pairs}`;
 }
 
-function partOne(input: string[]): number {
-    const heap: MinHeap<Round> = new MinHeap();
-    heap.insert({ size: 0, floor: 0, items: parseInput(input) });
-
+function execute(items: Item[][]): number {
     const visited: Set<string> = new Set();
+    const heap: MinHeap<Round> = new MinHeap();
+    let top: number = items.length - 1;
+
+    const computeBottom = (floors: Item[][]): number => {
+        for (let i = 0; i < floors.length; i++) {
+            if (floors[i].length > 0) return i;
+        }
+        return top; // all on top
+    };
+
+    heap.insert({ size: 0, floor: 0, bottom: computeBottom(items), items });
 
     while(heap.size() > 0) {
         let round = heap.extractMin();
@@ -76,31 +95,41 @@ function partOne(input: string[]): number {
         if(visited.has(hashValue)) continue;
         else visited.add(hashValue);
 
-        // check if everything is on the fourth floor (exit)
-        if(round.floor === TOP && round.items[0].length === 0 && round.items[1].length === 0 && round.items[2].length === 0) {
+        // check if everything is on the top floor (exit)
+        if(round.floor === top && round.bottom === top) {
             return round.size;
         }
 
+        // Generate combinations (pairs and singles)
         let combos = combinations(round.items[round.floor]);
+        // Heuristic ordering: when going up, try pairs first; when going down, singles first
+        const pairsFirst = combos.filter(c => c.length === 2).concat(combos.filter(c => c.length === 1));
+        const singlesFirst = combos.filter(c => c.length === 1).concat(combos.filter(c => c.length === 2));
 
-        if(round.floor < TOP) {
+        if(round.floor < top) {
             // Check for valid moves going up
-            combos.forEach(combo => {
-                if(isValidFloor([ ...combo, ...round.items[round.floor + 1] ])) {
-                    let newItems = round.items.map((f, i) => i === round.floor ? f.filter(item => !combo.includes(item)) : f);
-                    newItems[round.floor + 1] = [ ...newItems[round.floor + 1], ...combo ];
-                    heap.insert({ size: round.size + 1, floor: round.floor + 1, items: newItems });
+            pairsFirst.forEach(combo => {
+                const remainder = round.items[round.floor].filter(item => !combo.includes(item));
+                const dest = [ ...combo, ...round.items[round.floor + 1] ];
+                if(isValidFloor(remainder) && isValidFloor(dest)) {
+                    let newItems = round.items.map((f, i) => i === round.floor ? remainder : f);
+                    newItems[round.floor + 1] = dest;
+                    const newBottom = computeBottom(newItems);
+                    heap.insert({ size: round.size + 1, floor: round.floor + 1, bottom: newBottom, items: newItems });
                 }
             });
         }
 
-        if(round.floor > BOTTOM) {
+        if(round.floor > round.bottom) {
             // Check for valid moves going down
-            combos.forEach(combo => {
-                if(isValidFloor([ ...combo, ...round.items[round.floor - 1] ])) {
-                    let newItems = round.items.map((f, i) => i === round.floor ? f.filter(item => !combo.includes(item)) : f);
-                    newItems[round.floor - 1] = [ ...newItems[round.floor - 1], ...combo ];
-                    heap.insert({ size: round.size + 1, floor: round.floor - 1, items: newItems });
+            singlesFirst.forEach(combo => {
+                const remainder = round.items[round.floor].filter(item => !combo.includes(item));
+                const dest = [ ...combo, ...round.items[round.floor - 1] ];
+                if(isValidFloor(remainder) && isValidFloor(dest)) {
+                    let newItems = round.items.map((f, i) => i === round.floor ? remainder : f);
+                    newItems[round.floor - 1] = dest;
+                    const newBottom = computeBottom(newItems);
+                    heap.insert({ size: round.size + 1, floor: round.floor - 1, bottom: newBottom, items: newItems });
                 }
             });
         }
@@ -109,8 +138,17 @@ function partOne(input: string[]): number {
     return 0;
 }
 
+function partOne(input: string[]): number {
+    return execute(parseInput(input));
+}
+
 function partTwo(input: string[]): number {
-    return 0;
+    const items = parseInput(input);
+    items[0].push({ element: 'elerium', type: Cargo.GENERATOR });
+    items[0].push({ element: 'elerium', type: Cargo.MICROCHIP });
+    items[0].push({ element: 'dilithium', type: Cargo.GENERATOR });
+    items[0].push({ element: 'dilithium', type: Cargo.MICROCHIP });
+    return execute(items);
 }
 
 test(day, () => {
@@ -119,5 +157,5 @@ test(day, () => {
     expect(partOne(getExampleInput(day))).toBe(11);
     expect(partOne(getDayInput(day))).toBe(47);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(getDayInput(day))).toBe(71);
 });
