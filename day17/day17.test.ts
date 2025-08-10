@@ -37,8 +37,9 @@ function moves(position: Coord, passcode: string, route: string): { position: Co
     }, [] as { position: Coord, direction: string }[]);
 }
 
-function dijkstra(passcode: string): string {
+function dijkstra(passcode: string, shortest: boolean = true): string {
     const heap: MinHeap<Path> = new MinHeap<Path>();
+    const paths: Set<string> = new Set<string>();
 
     heap.insert({ size: 0, position: { x: 0, y: 0 }, route: '' });
 
@@ -46,24 +47,28 @@ function dijkstra(passcode: string): string {
         let next = heap.extractMin();
 
         if(next.position.x === 3 && next.position.y === 3) {
-            return next.route;
+            if(shortest) return next.route;
+            else paths.add(next.route);
+            continue;
         }
 
         moves(next.position, passcode, next.route).forEach(move => {
-            heap.insert({ size: next.size + 1, position: move.position, route: next.route + move.direction });
+            if(!paths.has(`${next.route}${move.direction}`)) {
+                heap.insert({ size: next.size + 1, position: move.position, route: next.route + move.direction });
+            }
         });
 
     }
 
-    return '';
+    return Array.from(paths.keys()).sort((a, b) => b.length - a.length).shift() as string;
 }
 
 function partOne(input: string[]): string {
-    return dijkstra(parseInput(input));
+    return dijkstra(parseInput(input), true);
 }
 
-function partTwo(input: string[]): string {
-    return '';
+function partTwo(input: string[]): number {
+    return dijkstra(parseInput(input), false).length;
 }
 
 test(day, () => {
@@ -75,5 +80,9 @@ test(day, () => {
 
     expect(partOne(getDayInput(day))).toBe('RDDRULDDRR');
 
-    expect(partTwo(getDayInput(day))).toBe('');
+    expect(dijkstra('ihgpwlah', false).length).toBe(370);
+    expect(dijkstra('kglvqrro', false).length).toBe(492);
+    expect(dijkstra('ulqzkmiv', false).length).toBe(830);
+
+    expect(partTwo(getDayInput(day))).toBe(766);
 });
