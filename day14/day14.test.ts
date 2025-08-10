@@ -14,7 +14,14 @@ function parseInput(input: string[]): string {
 }
 
 function md5(text: string): string {
-    return createHash('md5').update(text).digest('hex');
+    return createHash('md5').update(text).digest('hex').toLocaleLowerCase();
+}
+
+function stretch(hash: string): string {
+    for(let i = 0; i < 2016; i++) {
+        hash = md5(hash);
+    }
+    return hash;
 }
 
 function triples(text: string): string | undefined {
@@ -36,7 +43,7 @@ function quintuples(text: string): string[] {
     return Array.from(quintets.keys());
 }
 
-function findKey(seed: string, limit: number): number {
+function findKey(seed: string, limit: number, stretchHash: boolean = false): number {
 
     const SPAN: number = 1000;
     const keys: Key[] = [];
@@ -50,6 +57,8 @@ function findKey(seed: string, limit: number): number {
         potentialKeys = potentialKeys.filter(key => index <= (key.index + SPAN));
 
         let hash = md5(`${seed}${index}`);
+
+        if(stretchHash) hash = stretch(hash);
 
         let triplet = triples(hash);
         if(triplet !== undefined) {
@@ -87,7 +96,7 @@ function partOne(input: string[]): number {
 }
 
 function partTwo(input: string[]): number {
-    return 0;
+    return findKey(parseInput(input), 64, true);
 }
 
 test(day, () => {
@@ -101,5 +110,7 @@ test(day, () => {
     expect(partOne(getExampleInput(day))).toBe(22728);
     expect(partOne(getDayInput(day))).toBe(16106);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(stretch(md5('abc0'))).toBe('a107ff634856bb300138cac6568c0f24');
+    
+    expect(partTwo(getDayInput(day))).toBe(22423);
 });
