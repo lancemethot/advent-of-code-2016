@@ -15,50 +15,50 @@ function parseInput(input: string[]): Disc[] {
     });
 }
 
-// Returns the times in which this disc is in the '0' position
-function zeroPositions(disc: Disc, sample: number = 10): number[] {
-    const times: number[] = [];
-    for (let time = 0; time < sample; time++) {
-        if ((disc.current + time) % disc.positions === 0) {
-            times.push(time);
-        }
+function gcd(a: number, b: number): number {
+    while (b !== 0) {
+        [a, b] = [b, a % b];
     }
-    return times;
+    return Math.abs(a);
+}
+
+function lcm(a: number, b: number): number {
+    return (a / gcd(a, b)) * b;
+}
+
+function earliestTime(discs: Disc[]): number {
+    const sorted = discs.sort((a, b) => b.positions - a.positions);
+    const constraints = sorted.map(disc => {
+        const m = disc.positions;
+        const a = ((-disc.current - disc.id) % m + m) % m;
+        return { m, a };
+    });
+
+    let t = 0;
+    let step = 1;
+    for(const { m, a } of constraints) {
+        while(t % m !== a) t+= step;
+        step = lcm(step, m);
+    }
+    return t;
 }
 
 function partOne(input: string[]): number {
     const discs = parseInput(input);
-    const zeroTimes = discs.map(disc => zeroPositions(disc, 1000000));
-
-    let time = 0;
-    while(true) {
-        let t = time;
-        for(let d = 0; d < discs.length; d++) {
-            t++;
-            if(!zeroTimes[d].includes(t)) {
-                break;
-            }
-            if(d === discs.length - 1) {
-                return time;
-            }
-        }
-        time++;
-    }
-
+    return earliestTime(discs);
 }
 
 function partTwo(input: string[]): number {
-    return 0;
+    const discs = parseInput(input);
+    discs.push({ id: discs.length + 1, positions: 11, current: 0 });
+    return earliestTime(discs);
 }
 
 test(day, () => {
     debug(`[**${day}**] ${new Date()}\n\n`, day, false);
 
-    expect(zeroPositions({ id: 1, positions: 5, current: 4 })).toEqual([1, 6]);
-    expect(zeroPositions({ id: 2, positions: 2, current: 1 })).toEqual([1, 3, 5, 7, 9]);
-
     expect(partOne(getExampleInput(day))).toBe(5);
     expect(partOne(getDayInput(day))).toBe(317371);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(getDayInput(day))).toBe(2080951);
 });
