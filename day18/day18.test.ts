@@ -24,16 +24,20 @@ function generate(text: string): string {
     return next;
 }
 
-function partOne(input: string[], rows: number): number {
-    let grid: string[] = [ parseInput(input) ];
+function countSafe(text: string, rows: number): number {
+    let grid: string[] = [ text ];
     for(let i = 1; i < rows; i++) {
         grid.push(generate(grid[i - 1]));
     }
     return grid.reduce((acc, row) => acc + row.split('').filter(c => c === Tile.SAFE).length, 0);
 }
 
-function partTwo(input: string[]): number {
-    return 0;
+function partOne(input: string[], rows: number): number {
+    return countSafe(parseInput(input), rows);
+}
+
+function partTwo(input: string[], rows: number): number {
+    return countSafe(parseInput(input), rows);
 }
 
 test(day, () => {
@@ -44,5 +48,5 @@ test(day, () => {
 
     expect(partOne(getDayInput(day), 40)).toBe(2016);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(getDayInput(day), 400000)).toBe(19998750);
 });
