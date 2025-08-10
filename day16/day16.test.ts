@@ -15,15 +15,19 @@ function curve(text: string): string {
     return `${a}0${b}`;
 }
 
-function checksum(text: string, fill: number): string {
-    let check = text.substring(0, fill).split('');
-    let sum = '';
-    for(let i = 0; i < check.length - 1; i += 2) {
-        sum += check[i] === check[i + 1] ? '1' : '0';
+const memo: Map<string, string> = new Map<string, string>();
+function checksum(text: string): string {
+    let sum = memo.get(text);
+    if(!sum) {
+        sum = '';
+        let check = text.split('');
+        for(let i = 0; i < check.length - 1; i += 2) {
+            sum += check[i] === check[i + 1] ? '1' : '0';
+        }
+        if(check.length % 2 !== 0) sum += check[check.length - 1];
+        memo.set(text, sum as string);
     }
-    if(check.length % 2 !== 0) sum += check[check.length - 1];
-
-    return sum.length % 2 === 0 ? checksum(sum, fill) : sum;
+    return sum.length % 2 === 0 ? checksum(sum) : sum;
 }
 
 function partOne(input: string[], fill: number): string {
@@ -31,11 +35,15 @@ function partOne(input: string[], fill: number): string {
     while(data.length < fill) {
         data = curve(data);
     }
-    return checksum(data, fill);
+    return checksum(data.substring(0, fill));
 }
 
-function partTwo(input: string[]): string {
-    return '';
+function partTwo(input: string[], fill: number): string {
+    let data = parseInput(input);
+    while(data.length < fill) {
+        data = curve(data);
+    }
+    return checksum(data.substring(0, fill));
 }
 
 test(day, () => {
@@ -46,9 +54,9 @@ test(day, () => {
     expect(curve('11111')).toBe('11111000000');
     expect(curve('111100001010')).toBe('1111000010100101011110000');
 
-    expect(checksum('110010110100', 12)).toBe('100');
+    expect(checksum('110010110100')).toBe('100');
     expect(partOne(getExampleInput(day), 20)).toBe('01100');
     expect(partOne(getDayInput(day), 272)).toBe('00000100100001100');
 
-    expect(partTwo(getDayInput(day))).toBe('');
+    expect(partTwo(getDayInput(day), 35651584)).toBe('00011010100010010');
 });
