@@ -44,7 +44,16 @@ function partOne(input: string[]): number {
 }
 
 function partTwo(input: string[]): number {
-    return 0;
+    const ranges = parseInput(input);
+    const merged = mergeOverlaps(ranges);
+    let total = 0;
+    let last = 0;
+    for(let i = 0; i < merged.length; i++) {
+        total += merged[i].start - last;
+        last = merged[i].end + 1;
+    }
+    total += 4294967295 - merged[merged.length - 1].end;
+    return total;
 }
 
 test(day, () => {
@@ -53,5 +62,5 @@ test(day, () => {
     expect(partOne(getExampleInput(day))).toBe(3);
     expect(partOne(getDayInput(day))).toBe(32259706);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(getDayInput(day))).toBe(113);
 });
