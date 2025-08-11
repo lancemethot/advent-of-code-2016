@@ -35,6 +35,11 @@ function rotateByPosition(text: string, x: string): string {
     return rotate(text, 'right', steps);
 }
 
+function inverseRotateByPosition(text: string, x: string): string {
+    const lookup = [1, 1, 6, 2, 7, 3, 0, 4]; // only works for passwords of length 8
+    return rotate(text, 'left', lookup[text.indexOf(x)]);
+}
+
 function reverse(text: string, x: number, y: number): string {
     return text.slice(0, x) +
            text.slice(x, y + 1).split('').reverse().join('') +
@@ -81,14 +86,14 @@ function partOne(input: string[], start: string): string {
 
 function partTwo(input: string[], password: string): string {
     const instructions: string[] = parseInput(input);
-    return instructions.reverse().reduce((acc, step) => {
+    return instructions.reverse().reduce((acc, step, i) => {
         let matches = step.match(/swap position (\d+) with position (\d+)/);
         if(matches !== null) {
-            return swapPosition(acc, Number.parseInt(matches[2]), Number.parseInt(matches[1]));
+            return swapPosition(acc, Number.parseInt(matches[1]), Number.parseInt(matches[2]));
         }
         matches = step.match(/swap letter (\w+) with letter (\w+)/);
         if(matches !== null) {
-            return swapLetter(acc, matches[2], matches[1]);
+            return swapLetter(acc, matches[1], matches[2]);
         }
         matches = step.match(/rotate (left|right) (\d+) step[s]*/);
         if(matches !== null) {
@@ -96,7 +101,7 @@ function partTwo(input: string[], password: string): string {
         }
         matches = step.match(/rotate based on position of letter (\w+)/);
         if(matches !== null) {
-            return rotateByPosition(acc, matches[1]);
+            return inverseRotateByPosition(acc, matches[1]);
         }
         matches = step.match(/reverse positions (\d+) through (\d+)/);
         if(matches !== null) {
@@ -125,5 +130,5 @@ test(day, () => {
     expect(partOne(getExampleInput(day), 'abcde')).toBe('decab');
     expect(partOne(getDayInput(day), 'abcdefgh')).toBe('bdfhgeca');
 
-    //expect(partTwo(getDayInput(day), 'fbgdceah')).toBe('');
+    expect(partTwo(getDayInput(day), 'fbgdceah')).toBe('gdfcabeh');
 });
