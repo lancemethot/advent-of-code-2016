@@ -73,7 +73,9 @@ function astar(filesystem: Filesystem, start: Coord, goal: Coord): number {
 
     const heap: MinHeap<Path> = new MinHeap<Path>();
     const target = { x: goal.x - 1, y: goal.y };
+
     const visited: number[][] = filesystem.map(row => row.map(dn => Number.MAX_VALUE));
+    visited[start.x][start.y] = 0;
 
     heap.insert({ size: manhatten(start, target), position: start, steps: 0 });
 
