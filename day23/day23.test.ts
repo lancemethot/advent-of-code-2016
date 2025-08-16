@@ -140,14 +140,7 @@ function execute(instructions: Instruction[], registers: Map<string, number>, i:
 
 }
 
-function long(instructions: Instruction[], registers: Map<string, number>): number[] {
-    for(let i = 0; i < instructions.length; i++) {
-        i = execute(instructions, registers, i);
-    }
-    return Array.from(registers.entries()).sort().map(register => register[1]);
-}
-
-function short(instructions: Instruction[], registers: Map<string, number>): number[] {
+function solve(instructions: Instruction[], registers: Map<string, number>): number[] {
     for(let i = 0; i < instructions.length; i++) {
         // Skip ahead if we're doing inc X, dec Y, jnz Y -2
         if(matchesAdditionPattern(instructions, registers, i)) {
@@ -188,14 +181,14 @@ function partOne(input: string[], a: number): number {
     const registers: Map<string, number> = new Map();
     REGS.split('').forEach(reg => registers.set(reg, 0));
     registers.set('a', a);
-    return long(parseInput(input), registers)[0];
+    return solve(parseInput(input), registers)[0];
 }
 
 function partTwo(input: string[], a: number): number {
     const registers: Map<string, number> = new Map();
     REGS.split('').forEach(reg => registers.set(reg, 0));
     registers.set('a', a);
-    return short(parseInput(input), registers)[0];
+    return solve(parseInput(input), registers)[0];
 }
 
 test(day, () => {
