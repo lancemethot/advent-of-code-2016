@@ -17,11 +17,11 @@ type Tile = Coord & {
     label?: string;
 }
 
-type ShortMap = Map<string, Map<string, number>>;
+type TileGraph = Map<string, Map<string, number>>;
 
 type Route = HeapItem & {
     label: string;
-    visited: string;
+    visited: number; // bitmask
 }
 
 function parseInput(input: string[]): Tile[][] {
@@ -69,47 +69,14 @@ function bfs(grid: Tile[][], start: Coord): number[][] {
     return distances;
 }
 
-// Traveling Salesman
-function tsp(map: ShortMap): number {
-    const total = Array.from(map.keys()).length;
-    const best: Map<string, number> = new Map<string, number>();
-    const heap: MinHeap<Route> = new MinHeap<Route>();
-    heap.insert({ size: 0, label: '0', visited: '1' + '0'.repeat(total - 1) });
-
-    while(heap.size() > 0) {
-        const next = heap.extractMin();
-
-        if(next.visited.split('').every(chr => chr === '1')) {
-            return next.size;
-        }
-
-        const key = `${next.visited}-${next.label}`;
-        if(best.has(key) && best.get(key)! <= next.size) continue;
-        best.set(key, next.size);
-
-        Array.from(map.get(next.label)!.entries()).forEach(entry => {
-            let i = Number.parseInt(entry[0]);
-            if(next.visited[i] === '0') {
-                let mask = next.visited.split('');
-                mask.splice(i, 1, '1');
-                heap.insert({ size: next.size + entry[1], label: entry[0], visited: mask.join('') })
-            }
-        });
-
-    }
-
-    return 0;
-}
-
-function partOne(input: string[]): number {
-    const grid = parseInput(input);
+function gridToGraph(grid: Tile[][]): TileGraph {
     const labeled = grid.reduce((acc, row) => {
         acc.push(... row.filter(col => col.label));
         return acc;
     }, [] as Tile[]);
 
     // find distances starting at each label
-    const shortest: ShortMap = new Map();
+    const shortest: TileGraph = new Map();
     for(let i = 0; i < labeled.length; i++) {
         const distances = bfs(grid, labeled[i]);
         // record shortest distance between each label
@@ -131,12 +98,58 @@ function partOne(input: string[]): number {
         }
     }
 
-    return tsp(shortest);
+    return shortest;
+}
 
+// Traveling Salesman
+function tsp(map: TileGraph, full: boolean = true): number {
+    const total = Array.from(map.keys()).length;
+    const fullMask = (1 << total) - 1;
+
+    const best: Map<string, number> = new Map<string, number>();
+    let bestCycle = Number.MAX_VALUE;
+
+    const heap: MinHeap<Route> = new MinHeap<Route>();
+    heap.insert({ size: 0, label: '0', visited: 1 });
+
+    while (heap.size() > 0) {
+        const next = heap.extractMin();
+
+        if (!full && next.visited === fullMask) {
+            return next.size;
+        }
+
+        if (full && next.visited === fullMask) {
+            const cycleCost = next.size + map.get(next.label)!.get("0")!;
+            if (cycleCost < bestCycle) bestCycle = cycleCost;
+            continue;
+        }
+
+        // Prune if full cycle already found that's <= current path cost (can't improve)
+        if (full && next.size >= bestCycle) continue;
+
+        const key = `${next.visited}-${next.label}`;
+        if (best.has(key) && best.get(key)! <= next.size) continue;
+        best.set(key, next.size);
+
+        Array.from(map.get(next.label)!.entries()).forEach(entry => {
+            let i = Number.parseInt(entry[0]);
+            const bit = 1 << i;
+            if ((next.visited & bit) === 0) {
+                heap.insert({ size: next.size + entry[1], label: entry[0], visited: next.visited | bit });
+            }
+        });
+    }
+
+    return full ? (bestCycle === Number.MAX_VALUE ? 0 : bestCycle) : 0;
+}
+
+function partOne(input: string[]): number {
+    return tsp(gridToGraph(parseInput(input)), false);
 }
 
 function partTwo(input: string[]): number {
-    return 0;
+    return tsp(gridToGraph(parseInput(input)), true);
 }
 
 test(day, () => {
@@ -146,6 +159,6 @@ test(day, () => {
     expect(partOne(getExampleInput(day))).toBe(14);
     expect(partOne(getDayInput(day))).toBe(460);
 
-    expect(partTwo(getDayInput(day))).toBe(0);
+    expect(partTwo(getDayInput(day))).toBe(668);
 
 });
